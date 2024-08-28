@@ -1,0 +1,52 @@
+
+name: TruffleHog Scan and Push Report
+
+on:
+  push:
+    branches:
+      - main
+      
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  scan-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Ensure the full history is fetched for TruffleHog to scan
+
+    - name: Secret Scanning
+      uses: trufflesecurity/trufflehog@main
+      with:
+        extra_args: --only-verified  # Additional arguments for TruffleHog scan
+        output_format: json          # Specify output format as JSON
+        output_path: trufflehog_report.json  # Path to save the report
+
+    - name: Configure Git for pushing reports
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        echo "https://${{ secrets.PAT_PUSH_TOKEN }}:@github.com" > ~/.git-credentials
+
+    - name: Clone central repository
+      run: |
+        git clone https://github.com/n3rd-vignesh/centralised-repo-trufflehog.git
+        cd centralised-repo-trufflehog
+        mkdir -p reports/${{ github.repository }}
+        cd ..
+
+    - name: Move report to central repository
+      run: |
+        mv trufflehog_report.json centralised-repo-trufflehog/reports/${{ github.repository }}/trufflehog_report_${{ github.run_number }}.json
+
+    - name: Push report to central repository
+      run: |
+        cd central-report-repo
+        git add .
+        git commit -m "Add report for ${{ github.repository }} from run ${{ github.run_number }}"
+        git push origin main
