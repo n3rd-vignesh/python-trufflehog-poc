@@ -23,7 +23,6 @@ jobs:
     - name: Secret Scanning
       uses: trufflesecurity/trufflehog@main
       with:
-        extra_args: --only-verified  # Additional arguments for TruffleHog scan
         output_format: json          # Specify output format as JSON
         output_path: trufflehog_report.json  # Path to save the report
 
